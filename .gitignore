@@ -1,0 +1,27 @@
+# Ignore all .pdf files
+*.pdf
+
+# Ignore the outputs folder
+outputs/
+
+# Ignore VS Code configuration files
+.vscode/
+
+# Ignore IntelliJ IDEA configuration files
+.idea/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore compiled Go binaries
+*.exe
+*.out
+*.o
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+*.swp
