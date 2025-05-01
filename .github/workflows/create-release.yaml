@@ -61,7 +61,7 @@ jobs:
             --notes "${{ github.event.inputs.release_description }}" \
             $([[ "${{ github.event.inputs.pre_release }}" == "true" ]] && echo "--prerelease") \
             outputs/pdf-extractor-linux \
-            outputs/pdf-extractor-windows \
+            outputs/pdf-extractor-windows.exe \
             outputs/pdf-extractor-mac \
             --repo ${{ github.repository }}
 
