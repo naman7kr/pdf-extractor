@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -118,44 +117,6 @@ func extractContentsPageInMemory(pdfPath string) (string, error) {
 	return "", fmt.Errorf("'Contents' page not found in the PDF")
 }
 
-func extractPDFPageWithPdftotext(pdfPath, outputPath string, page int) error {
-	// Run the pdftotext command for a specific page
-	cmd := exec.Command("pdftotext", "-f", fmt.Sprintf("%d", page), "-l", fmt.Sprintf("%d", page), pdfPath, outputPath)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to extract text using pdftotext: %v", err)
-	}
-
-	return nil
-}
-
-func getPDFPageCount(pdfPath string) (int, error) {
-	// Run the pdfinfo command to get the total number of pages
-	cmd := exec.Command("pdfinfo", pdfPath)
-	output, err := cmd.Output()
-	if err != nil {
-		return 0, fmt.Errorf("failed to run pdfinfo: %v", err)
-	}
-
-	// Parse the output to find the "Pages" line
-	var totalPages int
-	lines := string(output)
-	for _, line := range strings.Split(lines, "\n") {
-		if strings.HasPrefix(line, "Pages:") {
-			_, err := fmt.Sscanf(line, "Pages: %d", &totalPages)
-			if err != nil {
-				return 0, fmt.Errorf("failed to parse page count: %v", err)
-			}
-			break
-		}
-	}
-
-	return totalPages, nil
-}
-
 func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
 	// Regular expression to match article numbers (e.g., "1.")
 	numberRegex := regexp.MustCompile(`^\d+\.\s*`)
@@ -202,6 +163,8 @@ func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
 
 				// Combine all title lines into a single title
 				title := strings.Join(titleLines, " ")
+				title = strings.TrimSpace(title)
+				title = strings.TrimSuffix(title, ".")
 				articles = append(articles, Article{
 					Title:  title,
 					Author: prevText,
@@ -243,6 +206,8 @@ func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
 
 		// Combine all title lines into a single title
 		title := strings.Join(titleLines, " ")
+		title = strings.TrimSpace(title)
+		title = strings.TrimSuffix(title, ".")
 		articles = append(articles, Article{
 			Title:  title,
 			Author: prevText,
