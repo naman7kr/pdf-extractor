@@ -44,7 +44,7 @@ jobs:
           mv outputs/linux/pdf-extractor outputs/pdf-extractor-linux
           mv outputs/windows/pdf-extractor.exe outputs/pdf-extractor-windows.exe
           mv outputs/mac/pdf-extractor outputs/pdf-extractor-mac
-
+          
       # Step 5: Authenticate GitHub CLI
       - name: Authenticate GitHub CLI
         env:
@@ -55,6 +55,7 @@ jobs:
       # Step 6: Create a release and upload assets
       - name: Create GitHub Release
         run: |
+          ls outputs/
           gh release create ${{ github.event.inputs.release_tag }} \
             --title "${{ github.event.inputs.release_title }}" \
             --notes "${{ github.event.inputs.release_description }}" \
