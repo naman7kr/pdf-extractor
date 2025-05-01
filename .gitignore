@@ -1,6 +1,9 @@
 # Ignore all .pdf files
 *.pdf
 
+# Ignore all .txt files
+*.txt
+
 # Ignore the outputs folder
 outputs/
 
