@@ -48,14 +48,12 @@ jobs:
       # Step 5: Authenticate GitHub CLI
       - name: Authenticate GitHub CLI
         env:
-          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+          REPO_ACCESS_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
         run: |
-          echo "${GITHUB_TOKEN}" | gh auth login --with-token
+          echo "${REPO_ACCESS_TOKEN}" | gh auth login --with-token
 
       # Step 6: Create a release and upload assets
       - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create ${{ github.event.inputs.release_tag }} \
             --title "${{ github.event.inputs.release_title }}" \
