@@ -174,12 +174,13 @@ func matchArticleTitleByLength(content, article string) bool {
 	normalizedContent := normalizeText(content)
 	normalizedArticle := normalizeText(article)
 
-	// Compare the first k characters of the content with the article title
-	k := len(normalizedArticle)
-	if len(normalizedContent) < k {
+	// Ensure the content is long enough to compare
+	if len(normalizedContent) < len(normalizedArticle) {
 		return false
 	}
-	return normalizedContent[:k] == normalizedArticle
+
+	// Compare the normalized article title with a substring of the normalized content
+	return strings.Contains(normalizedContent, normalizedArticle)
 }
 
 func sanitizeFileName(name string) string {

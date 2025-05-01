@@ -1,0 +1,72 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "The tag for the release (e.g., v1.0.0)"
+        required: true
+      release_title:
+        description: "The title of the release"
+        required: true
+      release_description:
+        description: "The description of the release"
+        required: true
+      pre_release:
+        description: "Set to true if this is a pre-release"
+        required: false
+        default: "false"
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Go
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20" # Specify the Go version you need
+
+      # Step 3: Make build.sh executable and run it
+      - name: Build the application
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      # Step 4: Rename outputs for meaningful names
+      - name: Rename build outputs
+        run: |
+          mv outputs/linux/pdf-extractor outputs/pdf-extractor-linux
+          mv outputs/windows/pdf-extractor.exe outputs/pdf-extractor-windows.exe
+          mv outputs/mac/pdf-extractor outputs/pdf-extractor-mac
+
+      # Step 5: Authenticate GitHub CLI
+      - name: Authenticate GitHub CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.REPO_ACCESS_TOKEN }}" | gh auth login --with-token
+
+      # Step 6: Create a release and upload assets
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ github.event.inputs.release_tag }} \
+            --title "${{ github.event.inputs.release_title }}" \
+            --notes "${{ github.event.inputs.release_description }}" \
+            $([[ "${{ github.event.inputs.pre_release }}" == "true" ]] && echo "--prerelease") \
+            outputs/pdf-extractor-linux \
+            outputs/pdf-extractor-windows \
+            outputs/pdf-extractor-mac \
+            --repo ${{ github.repository }}
+
+      # Step 7: Verify release creation
+      - name: Verify Release
+        run: |
+          gh release view ${{ github.event.inputs.release_tag }} --repo ${{ github.repository }}

@@ -30,8 +30,8 @@ func getPDFPageCount(pdfPath string) (int, error) {
 	return totalPages, nil
 }
 func extractPDFPageWithPdftotext(pdfPath, outputPath string, page int) error {
-	// Run the pdftotext command for a specific page
-	cmd := exec.Command("pdftotext", "-f", fmt.Sprintf("%d", page), "-l", fmt.Sprintf("%d", page), pdfPath, outputPath)
+	// Run the pdftotext command for a specific page in raw mode
+	cmd := exec.Command("pdftotext", "-raw", "-f", fmt.Sprintf("%d", page), "-l", fmt.Sprintf("%d", page), pdfPath, outputPath)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 
@@ -49,9 +49,9 @@ func normalizeText(text string) string {
 	// Remove leading and trailing spaces
 	text = strings.TrimSpace(text)
 
-	// Remove special characters (e.g., *, •, etc.)
+	// Remove special characters except for line breaks
 	text = strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == ' ' {
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == ' ' || r == '\n' {
 			return r
 		}
 		return -1
