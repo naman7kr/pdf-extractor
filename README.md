@@ -35,9 +35,20 @@ sudo apt install poppler-utils
 sudo apt install poppler-utils pdftk
 ```
 #### For Windows:
-Download the required JAR files, extract them, and add them to your system's PATH.
+1. ***Install*** `poppler-utils`
+- Download the Poppler binaries for Windows from [Poppler for Windows](https://github.com/oschwartz10612/poppler-windows).
+Extract the downloaded ZIP file to a directory (e.g., C:\poppler-utils).
+- Add the bin folder inside the extracted directory to your system's PATH:
+    1. Open ***System Properties → Advanced → Environment Variables.***
+    2. Under ***System Variables***, find the `Path` variable and click Edit.
+    3. Add the path to the bin folder (e.g., `C:\poppler-utils\bin`).
+2. ***Install*** `pdftk`
+- Download the `pdftk` installer for Windows from [pdflabs.com](https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/)
+- Run the installer and follow the instructions.
+- Ensure the installation directory (e.g., `C:\Program Files (x86)\PDFtk\bin`) is added to your system's PATH.
 
-Once the dependencies are installed, the tool will be ready to use. 
+After completing these steps, both `poppler-utils` and `pdftk` should be available for use in the command line on Windows.
+
 
 ## Usage
 
