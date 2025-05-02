@@ -2,6 +2,21 @@
 
 PDF Extractor is a CLI tool developed using Go and Cobra. It provides an easy way to manipulate PDF files, allowing you to extract specific content or modify the structure of your documents.
 
+## Table of Contents
+
+1. [Features](#features)
+2. [Installation](#installation)
+   - [Download Prebuilt Binaries](#download-prebuilt-binaries)
+   - [Build from Source](#build-from-source)
+   - [Prerequisites](#prerequisites)
+3. [Usage](#usage)
+   - [Extract Chapters and Authors](#extract-chapters-and-authors)
+   - [Generate PDFs for Chapters or Articles](#generate-pdfs-for-chapters-or-articles)
+   - [Delete Pages from a PDF](#delete-pages-from-a-pdf)
+   - [Undo Delete Operation](#undo-delete-operation)
+4. [Contributing](#contributing)
+5. [Contact](#contact)
+
 ## Features
 
 - **Extract Chapters or Articles**: Extract chapters or articles from a PDF.
