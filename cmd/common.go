@@ -49,9 +49,9 @@ func normalizeText(text string) string {
 	// Remove leading and trailing spaces
 	text = strings.TrimSpace(text)
 
-	// Remove special characters except for line breaks
+	// Allow specific characters (a-z, 0-9, space, ',', ':', ';', '-')
 	text = strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == ' ' || r == '\n' {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
 			return r
 		}
 		return -1

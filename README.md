@@ -1,1 +1,151 @@
-# pdf-extractor
+# PDF Extractor
+
+PDF Extractor is a CLI tool developed using Go and Cobra. It provides an easy way to manipulate PDF files, allowing you to extract specific content or modify the structure of your documents.
+
+## Features
+
+- **Extract Chapters or Articles**: Extract chapters or articles from a PDF.
+- **Create Chapters PDF**: Create separate PDF files for each chapter. 
+- **Delete Pages**: Remove specific pages or a range of pages from a PDF.
+- **Undo Delete Operation**: Restore deleted pages using the undo functionality.
+
+## Installation
+
+### Download Prebuilt Binaries
+You can download the prebuilt binaries for Windows, Mac, and Linux from the [GitHub Releases](https://github.com/naman7kr/pdf-extractor/releases).
+
+### Build from Source
+To generate the binary yourself, follow these steps:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/naman7kr/pdf-extractor.git
+   cd pdf-extractor
+   ```
+2. Run the build script:
+   ```bash
+   chmod +x ./build.sh
+   ./build.sh
+   ```
+### Prerequisites
+Ensure the following dependencies are installed and set to your system's PATH:
+#### For Linux and Mac:
+Install pdftk and poppler-utils:
+```bash
+sudo apt install poppler-utils
+sudo apt install poppler-utils pdftk
+```
+#### For Windows:
+Download the required JAR files, extract them, and add them to your system's PATH.
+
+Once the dependencies are installed, the tool will be ready to use. 
+
+## Usage
+
+### Extract Chapters and Authors
+The following command extracts all the articles or chapters and their respective authors from the content page of the specified PDF file:
+
+```bash
+pdf-extractor get chapters --file="<pdf-file>"
+```
+- ***Description***: This command scans the content page of the PDF to identify all the chapters or articles and their authors. The extracted information is saved in two separate files:
+
+    - articles.txt: Contains the list of articles or chapters.
+    - authors.txt: Contains the list of authors.
+
+- ***Note:*** Currently, this command only scans the page where the content is located. If the content page spans more than one page, it will not scan the additional pages.
+
+### Generate PDFs for Chapters or Articles
+The following command generates separate PDF files for all the chapters or articles in the specified PDF file:
+
+```bash
+pdf-extractor extract --file="<pdf-file>"
+```
+
+- ***Description:*** This command uses the articles.txt file, which contains the list of article titles present in the PDF. It scans through all the pages of the PDF, searches for the titles, and generates separate PDF files for each chapter or article.
+
+- Prerequisite: Ensure that articles.txt is present and contains the correct list of article titles before running this command.
+
+### Delete Pages from a PDF
+The following command allows you to delete specific pages, a range of pages, or pages based on their content from a PDF file:
+
+```bash
+pdf-extractor delete-pages --file="<pdf-file>" [options]
+```
+***Options:***
+1. ***Delete a Specific Page:***
+    - Use the `--at` flag to specify the page number to delete.
+    - Example:
+    ```bash
+    pdf-extractor delete-pages --file="example.pdf" --at=5
+    ```
+2. ***Delete a Range of Pages***
+    - Use the `--from` and `--to` flags to specify the starting and ending page numbers.
+    - If `--to` is not provided, all pages from the starting page to the end of the document will be deleted.
+    - Examples:
+    ```bash
+    pdf-extractor delete-pages --file="example.pdf" --from=3 --to=7
+    
+    pdf-extractor delete-pages --file="example.pdf" --from=10
+    ```
+3. ***Delete Pages Based on Content:***
+    - Use the `--starts-with` flag to delete pages where the content starts with the specified string.
+    - If `--to` is not provided, it will delete all pages starting from the matching page to the end of the document.
+    - Example:
+    ```bash
+    pdf-extractor delete-pages --file="example.pdf" --starts-with="Introduction"
+    ```
+
+
+***Constraints***
+- You cannot combine the following flags in a single command:
+    - `--at` with `--from`/`--to` or `--starts-with`.
+    - `--from`/`--to` with `--starts-with`.
+- The `--file` flag is required to specify the PDF file to operate on.
+
+***Notes:***
+- A backup of the original PDF is created before performing the delete operation.
+- Ensure that the specified flags are used correctly to avoid errors.
+
+### Undo Delete Operation
+The following command restores the previous state of a PDF file by using the backup stored in the backup folder:
+
+```bash
+pdf-extractor undo-pdf --file="<pdf-file>"
+```
+- ***Description:*** This command reverts the PDF file to its state before the last delete operation by using the backup stored in the backup folder.
+- ***Backup Management:***
+    - The tool automatically creates a backup of the PDF before performing any delete operation.
+    - You can set the `BACKUP_CAPACITY` environment variable to limit the total number of backup PDFs stored in the backup folder.
+    - Example:
+    ```bash
+    export BACKUP_CAPACITY=5
+    ```
+- ***Note:*** Ensure that the backup folder contains the required backup file for the undo operation to succeed.
+
+
+## Contributing
+
+Contributions are welcome! If you'd like to contribute to this project, please follow these steps:
+
+1. Fork the repository on GitHub.
+2. Create a new branch for your feature or bug fix:
+   ```bash
+   git checkout -b feature-name
+   ```
+3. Make your changes and commit them with clear and concise messages.
+4. Push your changes to your forked repository:
+    ```bash
+    git push origin feature-name
+    ```
+5. Open a pull request to the main repository, describing your changes in detail.
+
+Please ensure your code adheres to the project's coding standards and includes appropriate tests.
+
+For any questions, feedback, or support, feel free to reach out to the maintainers:
+
+## Contact
+
+For any questions, feedback, or support, feel free to reach out to the maintainers:
+
+- [Kumar Naman](https://github.com/naman7kr)
+- [Kumar Aman](https://github.com/aman54kumar)

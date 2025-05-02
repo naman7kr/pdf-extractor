@@ -25,9 +25,9 @@ var getCmd = &cobra.Command{
 }
 var chaptersCmd = &cobra.Command{
 	Use:     "chapters",
-	Short:   "Read all pages of a DOCX file",
+	Short:   "Read all pages of a PDF file",
 	Aliases: []string{"pages"},
-	Long:    `Reads all the pages of a Microsoft Word DOCX file.`,
+	Long:    `Reads all the pages of a PDF file.`,
 	Run:     processChapters,
 }
 
@@ -39,7 +39,7 @@ func init() {
 	getCmd.AddCommand(chaptersCmd)
 
 	// Define and mark the --file flag for the 'chapters' command
-	chaptersCmd.Flags().StringVarP(&file, "file", "f", "", "Path to the DOCX file")
+	chaptersCmd.Flags().StringVarP(&file, "file", "f", "", "Path to the PDF file")
 	chaptersCmd.MarkFlagRequired("file")
 }
 

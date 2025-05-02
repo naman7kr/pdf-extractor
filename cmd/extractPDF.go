@@ -173,7 +173,13 @@ func matchArticleTitleByLength(content, article string) bool {
 	// Normalize both the content and the article title
 	normalizedContent := normalizeText(content)
 	normalizedArticle := normalizeText(article)
-
+	// if normalizedContent starts with "women in entrepreneurship"
+	if strings.HasPrefix(normalizedContent, "women in entrepreneurship") {
+		fmt.Println("Normalized Content: ", normalizedContent)
+		fmt.Println("Normalized Article: ", normalizedArticle)
+		fmt.Println("Content Length: ", len(normalizedContent))
+		fmt.Println("Article Length: ", len(normalizedArticle))
+	}
 	// Ensure the content is long enough to compare
 	if len(normalizedContent) < len(normalizedArticle) {
 		return false
