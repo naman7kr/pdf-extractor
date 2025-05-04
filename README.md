@@ -87,17 +87,17 @@ pdf-extractor get chapters --file="<pdf-file>" --output-path="<output-directory>
 The following command generates separate PDF files for all the chapters or articles in the specified PDF file:
 
 ```bash
-pdf-extractor extract --file="<pdf-file>" --output-path="<output-directory>" --config-path="<config-file>" --ends-with="<text>"
+pdf-extractor extract --file="<pdf-file>" --output-path="<output-directory>" --config-path="<config-directory>" --ends-with="<text>"
 ```
 
 - ***Description:*** This command uses the `articles.txt` file, which contains the list of article titles present in the PDF. It scans through all the pages of the PDF, searches for the titles, and generates separate PDF files for each chapter or article.
 
 - ***Options***:
   - `--output-path`: Specify the directory where the generated PDFs will be saved. Defaults to `./extracted`.
-  - `--config-path`: Specify the path to the `articles.txt` file. Defaults to `./articles.txt`.
+  - `--config-path`: Specify the directory containing the `articles.txt` file. Defaults to `./configs`. The file name must always be `articles.txt`.
   - `--ends-with`: Specify the text to find the page where the last article ends. If found, the last PDF will end before the page containing this text.
 
-- ***Prerequisite***: Ensure that `articles.txt` is present and contains the correct list of article titles before running this command.
+- ***Prerequisite***: Ensure that `articles.txt` is present in the specified directory before running this command.
 
 ### Delete Pages from a PDF
 The following command allows you to delete specific pages, a range of pages, or pages based on their content from a PDF file:

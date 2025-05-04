@@ -29,8 +29,8 @@ func init() {
 	// Add --output-path flag with default value "extracted/"
 	extractCmd.Flags().StringVarP(&chapterOutputPath, "output-path", "o", "./extracted", "Path where the PDF files are generated")
 
-	// Add --config-path flag with default value "./articles.txt"
-	extractCmd.Flags().StringVarP(&configPath, "config-path", "c", "./articles.txt", "Path to the .txt file where articles are listed")
+	// Update --config-path flag to point to a directory
+	extractCmd.Flags().StringVarP(&configPath, "config-path", "c", "./configs", "Path to the directory containing the articles.txt file")
 
 	// Add --ends-with flag
 	extractCmd.Flags().StringVar(&endsWith, "ends-with", "", "Text to find the page where the last article ends")
@@ -43,8 +43,7 @@ func processExtract(cmd *cobra.Command, args []string) {
 		fmt.Println("Error: Please specify a file using the --file flag.")
 		os.Exit(1)
 	}
-	// Ensure chapterOutputPath has the default value if not provided
-	fmt.Println("Output path: ", chapterOutputPath)
+
 	// Ensure the output directory exists
 	err := os.MkdirAll(chapterOutputPath, os.ModePerm)
 	if err != nil {
@@ -52,14 +51,17 @@ func processExtract(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Construct the full path to the articles.txt file
+	articlesFilePath := filepath.Join(configPath, "articles.txt")
+
 	// Check if the articles file exists
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		fmt.Printf("Error: %s not found. Please provide a valid articles file.\n", configPath)
+	if _, err := os.Stat(articlesFilePath); os.IsNotExist(err) {
+		fmt.Printf("Error: %s not found. Please provide a valid directory containing articles.txt.\n", articlesFilePath)
 		os.Exit(1)
 	}
 
-	// Read articles from the specified config file
-	articles, err := readArticlesFromFile(configPath)
+	// Read articles from the articles.txt file
+	articles, err := readArticlesFromFile(articlesFilePath)
 	if err != nil {
 		fmt.Printf("Error reading articles: %v\n", err)
 		os.Exit(1)
