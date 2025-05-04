@@ -18,6 +18,7 @@ var deleteFile string
 var fromPage, toPage int
 var atPage int
 var startsWith string
+var backupPath string
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete-pages",
@@ -74,8 +75,16 @@ Note:
 			fmt.Println("Error: Please specify a file using the --file flag.")
 			os.Exit(1)
 		}
+
+		// Ensure the backup directory exists
+		err := os.MkdirAll(backupPath, os.ModePerm)
+		if err != nil {
+			fmt.Printf("Error creating backup directory: %v\n", err)
+			os.Exit(1)
+		}
+
 		// Create a backup before deleting pages
-		err := createBackup(deleteFile)
+		err = createBackup(deleteFile)
 		if err != nil {
 			fmt.Printf("Error creating backup: %v\n", err)
 			os.Exit(1)
@@ -101,15 +110,15 @@ func init() {
 	deleteCmd.Flags().IntVar(&toPage, "to", 0, "Ending page number to delete")
 	deleteCmd.Flags().IntVar(&atPage, "at", 0, "Specific page number to delete")
 	deleteCmd.Flags().StringVar(&startsWith, "starts-with", "", "Delete pages where content starts with the specified string")
+	deleteCmd.Flags().StringVar(&backupPath, "backup-path", "./backup", "Path to save backup files") // New flag for backup path
 	deleteCmd.MarkFlagRequired("file")
 	rootCmd.AddCommand(deleteCmd)
 }
 
 func createBackup(pdfPath string) error {
-	// Get the backup directory path
-	backupDir := "backup"
-	if _, err := os.Stat(backupDir); os.IsNotExist(err) {
-		err := os.Mkdir(backupDir, os.ModePerm)
+	// Use the backupPath variable for the backup directory
+	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
+		err := os.Mkdir(backupPath, os.ModePerm)
 		if err != nil {
 			return fmt.Errorf("failed to create backup directory: %v", err)
 		}
@@ -117,7 +126,7 @@ func createBackup(pdfPath string) error {
 
 	// Create a subdirectory for the specific PDF file
 	pdfName := filepath.Base(pdfPath)
-	pdfBackupDir := filepath.Join(backupDir, pdfName)
+	pdfBackupDir := filepath.Join(backupPath, pdfName)
 	if _, err := os.Stat(pdfBackupDir); os.IsNotExist(err) {
 		err := os.Mkdir(pdfBackupDir, os.ModePerm)
 		if err != nil {
@@ -134,7 +143,7 @@ func createBackup(pdfPath string) error {
 	}
 
 	// Enforce global LRU strategy
-	err = enforceGlobalLRU(backupDir)
+	err = enforceGlobalLRU(backupPath)
 	if err != nil {
 		return fmt.Errorf("failed to enforce global LRU strategy: %v", err)
 	}

@@ -8,6 +8,7 @@ import (
 
 func getPDFPageCount(pdfPath string) (int, error) {
 	// Run the pdfinfo command to get the total number of pages
+	fmt.Println("PDF Path:", pdfPath)
 	cmd := exec.Command("pdfinfo", pdfPath)
 	output, err := cmd.Output()
 	if err != nil {

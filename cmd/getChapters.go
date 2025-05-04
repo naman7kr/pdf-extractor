@@ -13,6 +13,8 @@ import (
 
 var file string
 
+var outputPath string
+
 type Article struct {
 	Title  string
 	Author string
@@ -41,10 +43,20 @@ func init() {
 	// Define and mark the --file flag for the 'chapters' command
 	chaptersCmd.Flags().StringVarP(&file, "file", "f", "", "Path to the PDF file")
 	chaptersCmd.MarkFlagRequired("file")
+
+	// Define the --output-path flag for the 'chapters' command with a default value of "./"
+	chaptersCmd.Flags().StringVarP(&outputPath, "output-path", "o", "./", "Path to save the output files")
 }
 
 func processChapters(cmd *cobra.Command, args []string) {
 	fmt.Printf("Processing file: %s to find the 'Contents' page...\n", file)
+
+	// Ensure the output directory exists
+	err := os.MkdirAll(outputPath, os.ModePerm)
+	if err != nil {
+		fmt.Printf("Error creating output directory: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Extract the page with the title "Contents" directly into memory
 	contentsPage, err := extractContentsPageInMemory(file)
@@ -64,17 +76,21 @@ func processChapters(cmd *cobra.Command, args []string) {
 	fmt.Printf("Extracted Articles: %+v\n", articles)
 
 	// Save the article titles to articles.txt
-	err = saveArticleTitles(articles, "articles.txt")
+	articlesFilePath := filepath.Join(outputPath, "articles.txt")
+	err = saveArticleTitles(articles, articlesFilePath)
 	if err != nil {
 		fmt.Printf("Error saving article titles: %v\n", err)
 		os.Exit(1)
 	}
+
 	// Save authors to authors.txt
-	err = saveAuthors(articles, "authors.txt")
+	authorsFilePath := filepath.Join(outputPath, "authors.txt")
+	err = saveAuthors(articles, authorsFilePath)
 	if err != nil {
 		fmt.Printf("Error saving authors: %v\n", err)
-		return
+		os.Exit(1)
 	}
+
 	fmt.Println("Titles and authors saved successfully.")
 }
 

@@ -71,12 +71,15 @@ After completing these steps, both `poppler-utils` and `pdftk` should be availab
 The following command extracts all the articles or chapters and their respective authors from the content page of the specified PDF file:
 
 ```bash
-pdf-extractor get chapters --file="<pdf-file>"
+pdf-extractor get chapters --file="<pdf-file>" --output-path="<output-directory>"
 ```
 - ***Description***: This command scans the content page of the PDF to identify all the chapters or articles and their authors. The extracted information is saved in two separate files:
 
-    - articles.txt: Contains the list of articles or chapters.
-    - authors.txt: Contains the list of authors.
+    - `articles.txt`: Contains the list of articles or chapters.
+    - `authors.txt`: Contains the list of authors.
+
+- ***Options***:
+  - `--output-path`: Specify the directory where the output files (`articles.txt` and `authors.txt`) will be saved. Defaults to `./`.
 
 - ***Note:*** Currently, this command only scans the page where the content is located. If the content page spans more than one page, it will not scan the additional pages.
 
@@ -84,12 +87,17 @@ pdf-extractor get chapters --file="<pdf-file>"
 The following command generates separate PDF files for all the chapters or articles in the specified PDF file:
 
 ```bash
-pdf-extractor extract --file="<pdf-file>"
+pdf-extractor extract --file="<pdf-file>" --output-path="<output-directory>" --config-path="<config-file>" --ends-with="<text>"
 ```
 
-- ***Description:*** This command uses the articles.txt file, which contains the list of article titles present in the PDF. It scans through all the pages of the PDF, searches for the titles, and generates separate PDF files for each chapter or article.
+- ***Description:*** This command uses the `articles.txt` file, which contains the list of article titles present in the PDF. It scans through all the pages of the PDF, searches for the titles, and generates separate PDF files for each chapter or article.
 
-- Prerequisite: Ensure that articles.txt is present and contains the correct list of article titles before running this command.
+- ***Options***:
+  - `--output-path`: Specify the directory where the generated PDFs will be saved. Defaults to `./extracted`.
+  - `--config-path`: Specify the path to the `articles.txt` file. Defaults to `./articles.txt`.
+  - `--ends-with`: Specify the text to find the page where the last article ends. If found, the last PDF will end before the page containing this text.
+
+- ***Prerequisite***: Ensure that `articles.txt` is present and contains the correct list of article titles before running this command.
 
 ### Delete Pages from a PDF
 The following command allows you to delete specific pages, a range of pages, or pages based on their content from a PDF file:
@@ -121,6 +129,8 @@ pdf-extractor delete-pages --file="<pdf-file>" [options]
     pdf-extractor delete-pages --file="example.pdf" --starts-with="Introduction"
     ```
 
+4. ***Backup Path***:
+    - Use the `--backup-path` flag to specify the directory where backups will be stored. Defaults to `./backup`.
 
 ***Constraints***
 - You cannot combine the following flags in a single command:
@@ -136,9 +146,13 @@ pdf-extractor delete-pages --file="<pdf-file>" [options]
 The following command restores the previous state of a PDF file by using the backup stored in the backup folder:
 
 ```bash
-pdf-extractor undo-pdf --file="<pdf-file>"
+pdf-extractor undo-pdf --file="<pdf-file>" --backup-path="<backup-directory>"
 ```
 - ***Description:*** This command reverts the PDF file to its state before the last delete operation by using the backup stored in the backup folder.
+
+- ***Options***:
+  - `--backup-path`: Specify the directory where backups are stored. Defaults to `./backup`.
+
 - ***Backup Management:***
     - The tool automatically creates a backup of the PDF before performing any delete operation.
     - You can set the `BACKUP_CAPACITY` environment variable to limit the total number of backup PDFs stored in the backup folder.
@@ -166,8 +180,6 @@ Contributions are welcome! If you'd like to contribute to this project, please f
 5. Open a pull request to the main repository, describing your changes in detail.
 
 Please ensure your code adheres to the project's coding standards and includes appropriate tests.
-
-For any questions, feedback, or support, feel free to reach out to the maintainers:
 
 ## Contact
 

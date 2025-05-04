@@ -6,13 +6,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 var extractFile string
-
+var configPath string
+var endsWith string
+var chapterOutputPath string
 var extractCmd = &cobra.Command{
 	Use:   "extract",
 	Short: "Extract pages related to articles from the PDF",
@@ -22,6 +25,16 @@ var extractCmd = &cobra.Command{
 func init() {
 	extractCmd.Flags().StringVarP(&extractFile, "file", "f", "", "Path to the PDF file")
 	extractCmd.MarkFlagRequired("file")
+
+	// Add --output-path flag with default value "extracted/"
+	extractCmd.Flags().StringVarP(&chapterOutputPath, "output-path", "o", "./extracted", "Path where the PDF files are generated")
+
+	// Add --config-path flag with default value "./articles.txt"
+	extractCmd.Flags().StringVarP(&configPath, "config-path", "c", "./articles.txt", "Path to the .txt file where articles are listed")
+
+	// Add --ends-with flag
+	extractCmd.Flags().StringVar(&endsWith, "ends-with", "", "Text to find the page where the last article ends")
+
 	rootCmd.AddCommand(extractCmd)
 }
 
@@ -30,16 +43,23 @@ func processExtract(cmd *cobra.Command, args []string) {
 		fmt.Println("Error: Please specify a file using the --file flag.")
 		os.Exit(1)
 	}
-
-	// Check if articles.txt exists
-	articlesFile := "articles.txt"
-	if _, err := os.Stat(articlesFile); os.IsNotExist(err) {
-		fmt.Printf("Error: %s not found. Please run the 'chapters' command first to generate it.\n", articlesFile)
+	// Ensure chapterOutputPath has the default value if not provided
+	fmt.Println("Output path: ", chapterOutputPath)
+	// Ensure the output directory exists
+	err := os.MkdirAll(chapterOutputPath, os.ModePerm)
+	if err != nil {
+		fmt.Printf("Error creating output directory: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Read articles from articles.txt
-	articles, err := readArticlesFromFile(articlesFile)
+	// Check if the articles file exists
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		fmt.Printf("Error: %s not found. Please provide a valid articles file.\n", configPath)
+		os.Exit(1)
+	}
+
+	// Read articles from the specified config file
+	articles, err := readArticlesFromFile(configPath)
 	if err != nil {
 		fmt.Printf("Error reading articles: %v\n", err)
 		os.Exit(1)
@@ -82,11 +102,10 @@ func extractPagesForArticles(pdfPath string, articles []string) error {
 		return fmt.Errorf("failed to get page count: %v", err)
 	}
 
-	// Create the "extracted" folder if it doesn't exist
-	extractedFolder := "extracted"
-	err = os.MkdirAll(extractedFolder, os.ModePerm)
+	// Ensure the output folder exists
+	err = os.MkdirAll(chapterOutputPath, os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("failed to create 'extracted' folder: %v", err)
+		return fmt.Errorf("failed to create output folder: %v", err)
 	}
 
 	// Map to store the starting page of each article
@@ -111,13 +130,9 @@ func extractPagesForArticles(pdfPath string, articles []string) error {
 		// Normalize the extracted content by removing line breaks
 		normalizedContent := normalizeText(string(content))
 
-		// Log the starting text of the page for debugging
-		fmt.Printf("Page %d starting text: '%s'\n", page, normalizedContent[:min(len(normalizedContent), 100)]) // Log first 100 characters
-
 		// Check if the first k characters match any article title
 		for _, article := range articles {
 			if matchArticleTitleByLength(normalizedContent, article) {
-				fmt.Printf("Matched article '%s' on page %d\n", article, page) // Debugging log
 				articlePages[article] = page
 				break
 			}
@@ -145,7 +160,16 @@ func extractPagesForArticles(pdfPath string, articles []string) error {
 				endPage = totalPages
 			}
 		} else {
+			// Handle the last article
 			endPage = totalPages
+			if endsWith != "" {
+				pageFound, err := findPageEndingWith(pdfPath, endsWith, startPage, totalPages)
+				if err != nil {
+					fmt.Printf("Error finding page for --ends-with: %v\n", err)
+				} else if pageFound > 0 {
+					endPage = pageFound - 1
+				}
+			}
 		}
 
 		// Validate page range
@@ -154,8 +178,8 @@ func extractPagesForArticles(pdfPath string, articles []string) error {
 			continue
 		}
 
-		// Generate the output file path
-		outputFile := filepath.Join(extractedFolder, fmt.Sprintf("%s.pdf", sanitizeFileName(article)))
+		// Generate the output file path using chapterOutputPath
+		outputFile := filepath.Join(chapterOutputPath, fmt.Sprintf("%s.pdf", sanitizeFileName(article)))
 
 		// Extract the pages for the current article
 		err := extractPDFPages(pdfPath, outputFile, startPage, endPage)
@@ -169,6 +193,36 @@ func extractPagesForArticles(pdfPath string, articles []string) error {
 	return nil
 }
 
+func findPageEndingWith(pdfPath, endsWith string, startPage, totalPages int) (int, error) {
+	for page := startPage; page <= totalPages; page++ {
+		tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("page_%d.txt", page))
+
+		// Extract the current page using pdftotext
+		err := extractPDFPageWithPdftotext(pdfPath, tempFile, page)
+		if err != nil {
+			return 0, fmt.Errorf("failed to extract page %d: %v", page, err)
+		}
+
+		// Read the extracted content from the temporary file
+		content, err := os.ReadFile(tempFile)
+		if err != nil {
+			return 0, fmt.Errorf("failed to read temporary file for page %d: %v", page, err)
+		}
+
+		// Normalize the extracted content
+		normalizedContent := normalizeText(string(content))
+
+		// Check if the content starts with the specified text
+		if strings.HasPrefix(normalizedContent, normalizeText(endsWith)) {
+			return page, nil
+		}
+
+		// Remove the temporary file
+		os.Remove(tempFile)
+	}
+
+	return 0, nil
+}
 func matchArticleTitleByLength(content, article string) bool {
 	// Normalize both the content and the article title
 	normalizedContent := normalizeText(content)
@@ -190,13 +244,16 @@ func matchArticleTitleByLength(content, article string) bool {
 }
 
 func sanitizeFileName(name string) string {
-	// Replace invalid characters in the filename
-	return strings.ReplaceAll(name, " ", "_")
+	// Replace spaces with underscores first
+	name = strings.ReplaceAll(name, " ", "_")
+	// Remove all special characters apart from underscores
+	name = regexp.MustCompile(`[^a-zA-Z0-9_]`).ReplaceAllString(name, "")
+	return name
 }
 
-func extractPDFPages(pdfPath, outputPath string, startPage, endPage int) error {
+func extractPDFPages(pdfPath, chapterOutputPath string, startPage, endPage int) error {
 	// Run the pdftk command to extract pages
-	cmd := exec.Command("pdftk", pdfPath, "cat", fmt.Sprintf("%d-%d", startPage, endPage), "output", outputPath)
+	cmd := exec.Command("pdftk", pdfPath, "cat", fmt.Sprintf("%d-%d", startPage, endPage), "output", chapterOutputPath)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 

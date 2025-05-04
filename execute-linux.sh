@@ -3,7 +3,7 @@
 # sudo apt install poppler-utils pdftk
 
 # ./outputs/linux/pdf-extractor get chapters --file="Vol. 14. N. 2, 2022.pdf"
-# ./outputs/linux/pdf-extractor extract --file="Vol. 14. N. 2, 2022.pdf"
+./outputs/linux/pdf-extractor extract --file="Vol. 14. N. 2, 2022.pdf" --ends-with="Guidelines for Contributors" 
 # ./outputs/linux/pdf-extractor delete-pages --file="Vol. 14. N. 2, 2022.pdf" --from=1 --to=2 
 
 # Read the last article from articles.txt
