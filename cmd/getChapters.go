@@ -116,9 +116,10 @@ func extractContentsPageInMemory(pdfPath string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to read temporary file for page %d: %v", page, err)
 		}
-
 		// Check if the page contains the word "Contents"
-		if strings.Contains(string(content), "Contents") {
+		// also normalize before compare case
+
+		if strings.Contains(normalizeText(string(content)), "contents") {
 			// Remove the temporary file
 			os.Remove(tempFile)
 
