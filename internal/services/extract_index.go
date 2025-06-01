@@ -1,113 +1,54 @@
-package cmd
+package services
 
 import (
 	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
+	"pdf-extractor/internal/models"
+	"pdf-extractor/internal/utils"
 	"regexp"
 	"strings"
 
-	"github.com/spf13/cobra"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
-var file string
-
-var outputPath string
-
-var getCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Get information from a file",
-	Long:  `Allows you to retrieve specific information from a given file.`,
-}
-var chaptersCmd = &cobra.Command{
-	Use:     "chapters",
-	Short:   "Read all pages of a PDF file",
-	Aliases: []string{"pages"},
-	Long:    `Reads all the pages of a PDF file.`,
-	Run:     processChapters,
-}
-
-func saveArticlesAndAuthorsToYAML(articles []Article, filePath string) error {
-	// Create the YAML structure
-	config := ArticlesConfig{
-		Articles: articles,
-	}
-
-	// Create or overwrite the YAML file
-	file, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to create YAML file: %v", err)
-	}
-	defer file.Close()
-
-	// Encode the structure into YAML and write to the file
-	encoder := yaml.NewEncoder(file)
-	err = encoder.Encode(config)
-	if err != nil {
-		return fmt.Errorf("failed to write YAML data: %v", err)
-	}
-
-	fmt.Printf("Saved articles and authors to YAML file: %s\n", filePath)
-	return nil
-}
-func init() {
-	// Add 'get' as a subcommand of the root command
-	rootCmd.AddCommand(getCmd)
-
-	// Add 'chapters' as a subcommand of 'get'
-	getCmd.AddCommand(chaptersCmd)
-
-	// Define and mark the --file flag for the 'chapters' command
-	chaptersCmd.Flags().StringVarP(&file, "file", "f", "", "Path to the PDF file")
-	chaptersCmd.MarkFlagRequired("file")
-
-	// Define the --output-path flag for the 'chapters' command with a default value of "./"
-	chaptersCmd.Flags().StringVarP(&outputPath, "output-path", "o", "./", "Path to save the output files")
-}
-
-func processChapters(cmd *cobra.Command, args []string) {
-	fmt.Printf("Processing file: %s to find the 'Contents' page...\n", file)
-
+func ExtractIndex(file string, outputPath string) error {
 	// Ensure the output directory exists
-	err := os.MkdirAll(outputPath, os.ModePerm)
+	err := utils.CreateDirectoryIfNotExists(outputPath)
 	if err != nil {
-		fmt.Printf("Error creating output directory: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
 	// Extract the page with the title "Contents" directly into memory
 	contentsPage, err := extractContentsPageInMemory(file)
 	if err != nil {
-		fmt.Printf("Error extracting content: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error extracting content: %v", err)
 	}
 
 	// Parse the extracted content to extract titles and authors
 	articles, err := parseTitlesAndAuthorsFromContent(contentsPage)
 	if err != nil {
-		fmt.Printf("Error parsing titles and authors: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error parsing titles and authors: %v", err)
 	}
 
 	// Debug: Print the articles array
-	fmt.Printf("Extracted Articles: %+v\n", articles)
+	logrus.Debugf("Extracted Articles: %+v\n", articles)
 
 	// Save articles and authors to config.yaml
 	yamlFilePath := filepath.Join(outputPath, "config.yaml")
 	err = saveArticlesAndAuthorsToYAML(articles, yamlFilePath)
 	if err != nil {
-		fmt.Printf("Error saving articles and authors to YAML: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error saving articles and authors to yaml: %v", err)
 	}
 
-	fmt.Println("Articles and authors saved successfully to config.yaml.")
+	logrus.Infof("Articles and authors saved successfully to %s", yamlFilePath)
+	return nil
 }
-
 func extractContentsPageInMemory(pdfPath string) (string, error) {
 	// Get the total number of pages in the PDF
-	totalPages, err := getPDFPageCount(pdfPath)
+	totalPages, err := utils.GetPDFPageCount(pdfPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to get page count: %v", err)
 	}
@@ -117,7 +58,7 @@ func extractContentsPageInMemory(pdfPath string) (string, error) {
 		tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("page_%d.txt", page))
 
 		// Extract the current page using pdftotext
-		err := extractPDFPageWithPdftotext(pdfPath, tempFile, page)
+		err := utils.ExtractPDFPageWithPdftotext(pdfPath, tempFile, page)
 		if err != nil {
 			return "", fmt.Errorf("failed to extract page %d: %v", page, err)
 		}
@@ -130,7 +71,7 @@ func extractContentsPageInMemory(pdfPath string) (string, error) {
 		// Check if the page contains the word "Contents"
 		// also normalize before compare case
 
-		if strings.Contains(normalizeText(string(content)), "contents") {
+		if strings.Contains(utils.NormalizeText(string(content)), "contents") {
 			// Remove the temporary file
 			os.Remove(tempFile)
 
@@ -144,19 +85,13 @@ func extractContentsPageInMemory(pdfPath string) (string, error) {
 
 	return "", fmt.Errorf("'Contents' page not found in the PDF")
 }
-func trimTrailingNumber(title string) string {
-	// Regular expression to match trailing numbers and spaces
-	re := regexp.MustCompile(`\s*\d+$`)
-	// Replace trailing numbers and spaces with an empty string
-	return strings.TrimSpace(re.ReplaceAllString(title, ""))
-}
-func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
+func parseTitlesAndAuthorsFromContent(content string) ([]models.Article, error) {
 	// Regular expression to match article numbers (e.g., "1.")
 	numberRegex := regexp.MustCompile(`^\d+\.\s*`)
 	// Regular expression to match lines with only a number or a number range (e.g., "1", "10", "1-10")
 	numberOrRangeRegex := regexp.MustCompile(`^\d+(-\d+)?$`)
 
-	var articles []Article
+	var articles []models.Article
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	var titleLines []string
 	var prevText string     // To store the last appended text
@@ -196,14 +131,14 @@ func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
 
 				// Combine all title lines into a single title
 				for i := range titleLines {
-					titleLines[i] = trimTrailingNumber(titleLines[i])
+					titleLines[i] = utils.TrimTrailingNumber(titleLines[i])
 				}
 				title := strings.Join(titleLines, " ")
 				title = strings.TrimSpace(title)
 				title = strings.TrimSuffix(title, ".")
 				// trim any trailing number or digits
-				title = trimTrailingNumber(title)
-				articles = append(articles, Article{
+				title = utils.TrimTrailingNumber(title)
+				articles = append(articles, models.Article{
 					Title:  title,
 					Author: prevText,
 				})
@@ -243,14 +178,14 @@ func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
 			prevText = ""
 		}
 		for i := range titleLines {
-			titleLines[i] = trimTrailingNumber(titleLines[i])
+			titleLines[i] = utils.TrimTrailingNumber(titleLines[i])
 		}
 		// Combine all title lines into a single title
 		title := strings.Join(titleLines, " ")
 		title = strings.TrimSpace(title)
 		title = strings.TrimSuffix(title, ".")
-		title = trimTrailingNumber(title)
-		articles = append(articles, Article{
+		title = utils.TrimTrailingNumber(title)
+		articles = append(articles, models.Article{
 			Title:  title,
 			Author: prevText,
 		})
@@ -263,57 +198,26 @@ func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
 
 	return articles, nil
 }
-func saveArticleTitles(articles []Article, filePath string) error {
-	// Remove the existing file if it exists
-	if _, err := os.Stat(filePath); err == nil {
-		err = os.Remove(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to remove existing file: %v", err)
-		}
+func saveArticlesAndAuthorsToYAML(articles []models.Article, filePath string) error {
+	// Create the YAML structure
+	config := models.ArticlesConfig{
+		Articles: articles,
 	}
 
-	// Create or overwrite the file
+	// Create or overwrite the YAML file
 	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to create file: %v", err)
+		return fmt.Errorf("failed to create YAML file: %v", err)
 	}
 	defer file.Close()
 
-	// Write each article title to the file
-	for _, article := range articles {
-		_, err := file.WriteString(article.Title + "\n")
-		if err != nil {
-			return fmt.Errorf("failed to write to file: %v", err)
-		}
-		fmt.Printf("Saved article title: %s\n", article.Title) // Debugging line
-	}
-
-	return nil
-}
-func saveAuthors(articles []Article, filePath string) error {
-	// Remove the existing file if it exists
-	if _, err := os.Stat(filePath); err == nil {
-		err = os.Remove(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to remove existing file: %v", err)
-		}
-	}
-
-	// Create or overwrite the file
-	file, err := os.Create(filePath)
+	// Encode the structure into YAML and write to the file
+	encoder := yaml.NewEncoder(file)
+	err = encoder.Encode(config)
 	if err != nil {
-		return fmt.Errorf("failed to create file: %v", err)
-	}
-	defer file.Close()
-
-	// Write each author to the file
-	for _, article := range articles {
-		_, err := file.WriteString(article.Author + "\n")
-		if err != nil {
-			return fmt.Errorf("failed to write to file: %v", err)
-		}
-		fmt.Printf("Saved author: %s\n", article.Author) // Debugging line
+		return fmt.Errorf("failed to write YAML data: %v", err)
 	}
 
+	fmt.Printf("Saved articles and authors to YAML file: %s\n", filePath)
 	return nil
 }

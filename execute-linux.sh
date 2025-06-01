@@ -2,8 +2,8 @@
 # sudo apt install poppler-utils
 # sudo apt install poppler-utils pdftk
 # ./outputs/linux/pdf-extractor -v
-# ./outputs/linux/pdf-extractor get chapters --file="IJDR VOL. 14 No. 1 Jan. - june 2022.pdf" --output-path="./configs"
-# ./outputs/linux/pdf-extractor extract --file="IJDR VOL. 14 No. 1 Jan. - june 2022.pdf" --output-path="./chapters" --config-path="./configs"
+# ./outputs/linux/pdf-extractor extract-index --file="IJDR VOL. 14 No. 1 Jan. - june 2022.pdf" --output-path="./configs"
+# ./outputs/linux/pdf-extractor extract --file="IJDR VOL. 14 No. 1 Jan. - june 2022.pdf" --output-path="./chapters" --config-path="./configs" --ends-with="Guidelines for Contributors"
 # ./outputs/linux/pdf-extractor delete-pages --file="Vol. 14. N. 2, 2022.pdf" --from=1 --to=2  
 
 # Read the last article from articles.txt
