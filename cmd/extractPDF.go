@@ -98,6 +98,8 @@ func readArticlesFromFile(filePath string) ([]string, error) {
 }
 
 func extractPagesForArticles(pdfPath string, articles []string) error {
+	const patternThreshold = 0.4 // 80% threshold
+	const patternLimit = 100
 	// Get the total number of pages in the PDF
 	totalPages, err := getPDFPageCount(pdfPath)
 	if err != nil {
@@ -113,7 +115,10 @@ func extractPagesForArticles(pdfPath string, articles []string) error {
 	// Map to store the starting page of each article
 	articlePages := make(map[string]int)
 
-	// Iterate through each page to find the starting page of each article
+	// Array to store normalized content of all pages
+	pageContents := make([]string, totalPages)
+
+	// Iterate through each page to extract and store normalized content
 	for page := 1; page <= totalPages; page++ {
 		tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("page_%d.txt", page))
 
@@ -131,17 +136,36 @@ func extractPagesForArticles(pdfPath string, articles []string) error {
 
 		// Normalize the extracted content by removing line breaks
 		normalizedContent := normalizeText(string(content))
-
-		// Check if the first k characters match any article title
-		for _, article := range articles {
-			if matchArticleTitleByLength(normalizedContent, article) {
-				articlePages[article] = page
-				break
-			}
-		}
+		pageContents[page-1] = normalizedContent // Store normalized content in the array
 
 		// Remove the temporary file
 		os.Remove(tempFile)
+	}
+	longestPrefix, err := findLongestPrefix(pageContents, patternThreshold)
+	if err != nil {
+		fmt.Println("Error finding prefix:", err)
+	} else {
+		fmt.Println("Detected Longest Common Prefix:", longestPrefix)
+	}
+
+	pageContents = removePrefix(pageContents, longestPrefix)
+	for i, content := range pageContents {
+		// print 100 characters of the content for debugging
+		if i+1 == 17 {
+			fmt.Printf("Page %d content (first 100 chars): %s\n", i+1, normalizeText(content[:150]))
+			fmt.Printf("article[2]: %s\n", normalizeText(articles[2]))
+		}
+	}
+	// find starting pages for articles
+	for _, article := range articles {
+		for page, normalizedContent := range pageContents {
+
+			if matchArticleTitleByLength(normalizedContent, article) {
+				fmt.Printf("Found article '%s' on page %d\n", article, page+1)
+				articlePages[article] = page + 1 // Pages are 1-indexed
+				break
+			}
+		}
 	}
 
 	// Extract pages for each article
@@ -195,6 +219,105 @@ func extractPagesForArticles(pdfPath string, articles []string) error {
 	return nil
 }
 
+// removeDigits removes all digits from a given string.
+func removeDigits(input string) string {
+	re := regexp.MustCompile("[0-9]")
+	return re.ReplaceAllString(input, "")
+}
+
+// findLongestPrefix finds the longest prefix from both the start and reverse order of the list.
+func findLongestPrefix(stringsList []string, threshold float64) (string, error) {
+	processedStrings := make([]string, len(stringsList))
+	for i, str := range stringsList {
+		processedStrings[i] = removeDigits(str)
+	}
+
+	totalStrings := len(processedStrings)
+	if totalStrings == 0 {
+		return "", fmt.Errorf("no strings provided")
+	}
+
+	// Helper function to find prefix in a given order
+	findPrefix := func(strings []string) string {
+		firstString := strings[0]
+		longestPrefix := ""
+
+		for i := 1; i <= len(firstString); i++ {
+			prefix := firstString[:i]
+			count := 0
+
+			for _, str := range strings {
+				if stringStartsWith(str, prefix) {
+					count++
+				}
+			}
+
+			occurrenceRate := float64(count) / float64(totalStrings)
+			if occurrenceRate >= threshold && len(prefix) > len(longestPrefix) {
+				longestPrefix = prefix
+			}
+		}
+		return longestPrefix
+	}
+
+	// Find prefix from the start
+	startPrefix := findPrefix(processedStrings)
+
+	// Find prefix from the reverse order
+	reversedStrings := make([]string, len(processedStrings))
+	copy(reversedStrings, processedStrings)
+	for i := 0; i < len(reversedStrings)/2; i++ {
+		reversedStrings[i], reversedStrings[len(reversedStrings)-1-i] = reversedStrings[len(reversedStrings)-1-i], reversedStrings[i]
+	}
+	endPrefix := findPrefix(reversedStrings)
+
+	// Return the longer of the two prefixes
+	if len(startPrefix) > len(endPrefix) {
+		return startPrefix, nil
+	}
+	return endPrefix, nil
+}
+
+// startsWith checks if a string starts with the given prefix.
+func stringStartsWith(str, prefix string) bool {
+	return len(str) >= len(prefix) && str[:len(prefix)] == prefix
+}
+
+// removePrefix removes the identified prefix from the original strings.
+func removePrefix(stringsList []string, prefix string) []string {
+	result := []string{}
+
+	for _, str := range stringsList {
+		// Remove digits from the string to check if the prefix exists
+		processedStr := removeDigits(str)
+		if stringStartsWith(processedStr, prefix) {
+			// Iterate through the string and remove characters until the length of the prefix is reached
+			prefixLength := len(prefix)
+			removedLength := 0
+			for i := 0; i < len(str); i++ {
+				if removedLength >= prefixLength {
+					str = str[i:]
+					break
+				}
+				if !isDigit(str[i]) {
+					removedLength++
+				}
+			}
+			// If the length of the prefix is not reached, don't remove any characters
+			if removedLength < prefixLength {
+				str = stringsList[len(result)] // Restore original string
+			}
+		}
+		result = append(result, str)
+	}
+
+	return result
+}
+
+// isDigit checks if a character is a digit.
+func isDigit(ch byte) bool {
+	return ch >= '0' && ch <= '9'
+}
 func findPageEndingWith(pdfPath, endsWith string, startPage, totalPages int) (int, error) {
 	for page := startPage; page <= totalPages; page++ {
 		tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("page_%d.txt", page))
@@ -229,20 +352,14 @@ func matchArticleTitleByLength(content, article string) bool {
 	// Normalize both the content and the article title
 	normalizedContent := normalizeText(content)
 	normalizedArticle := normalizeText(article)
-	// if normalizedContent starts with "women in entrepreneurship"
-	if strings.HasPrefix(normalizedContent, "women in entrepreneurship") {
-		fmt.Println("Normalized Content: ", normalizedContent)
-		fmt.Println("Normalized Article: ", normalizedArticle)
-		fmt.Println("Content Length: ", len(normalizedContent))
-		fmt.Println("Article Length: ", len(normalizedArticle))
-	}
+
 	// Ensure the content is long enough to compare
 	if len(normalizedContent) < len(normalizedArticle) {
 		return false
 	}
 
 	// Compare the normalized article title with a substring of the normalized content
-	return strings.Contains(normalizedContent, normalizedArticle)
+	return strings.HasPrefix(normalizedContent, normalizedArticle)
 }
 
 func sanitizeFileName(name string) string {

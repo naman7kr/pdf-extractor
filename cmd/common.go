@@ -32,7 +32,7 @@ func getPDFPageCount(pdfPath string) (int, error) {
 }
 func extractPDFPageWithPdftotext(pdfPath, outputPath string, page int) error {
 	// Run the pdftotext command for a specific page in raw mode
-	cmd := exec.Command("pdftotext", "-raw", "-f", fmt.Sprintf("%d", page), "-l", fmt.Sprintf("%d", page), pdfPath, outputPath)
+	cmd := exec.Command("pdftotext", "-layout", "-f", fmt.Sprintf("%d", page), "-l", fmt.Sprintf("%d", page), pdfPath, outputPath)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 

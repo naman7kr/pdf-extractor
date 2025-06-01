@@ -133,7 +133,12 @@ func extractContentsPageInMemory(pdfPath string) (string, error) {
 
 	return "", fmt.Errorf("'Contents' page not found in the PDF")
 }
-
+func trimTrailingNumber(title string) string {
+	// Regular expression to match trailing numbers and spaces
+	re := regexp.MustCompile(`\s*\d+$`)
+	// Replace trailing numbers and spaces with an empty string
+	return strings.TrimSpace(re.ReplaceAllString(title, ""))
+}
 func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
 	// Regular expression to match article numbers (e.g., "1.")
 	numberRegex := regexp.MustCompile(`^\d+\.\s*`)
@@ -179,13 +184,19 @@ func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
 				}
 
 				// Combine all title lines into a single title
+				for i := range titleLines {
+					titleLines[i] = trimTrailingNumber(titleLines[i])
+				}
 				title := strings.Join(titleLines, " ")
 				title = strings.TrimSpace(title)
 				title = strings.TrimSuffix(title, ".")
+				// trim any trailing number or digits
+				title = trimTrailingNumber(title)
 				articles = append(articles, Article{
 					Title:  title,
 					Author: prevText,
 				})
+
 				fmt.Printf("Added article: Title='%s', Author='%s'\n", title, prevText) // Debugging line
 				titleLines = nil                                                        // Reset for the next article
 			}
@@ -220,11 +231,14 @@ func parseTitlesAndAuthorsFromContent(content string) ([]Article, error) {
 			// If there's only one line, treat it as the title and leave prevText empty
 			prevText = ""
 		}
-
+		for i := range titleLines {
+			titleLines[i] = trimTrailingNumber(titleLines[i])
+		}
 		// Combine all title lines into a single title
 		title := strings.Join(titleLines, " ")
 		title = strings.TrimSpace(title)
 		title = strings.TrimSuffix(title, ".")
+		title = trimTrailingNumber(title)
 		articles = append(articles, Article{
 			Title:  title,
 			Author: prevText,
