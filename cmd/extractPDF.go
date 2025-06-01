@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -101,29 +100,8 @@ func processExtract(cmd *cobra.Command, args []string) {
 	fmt.Println("Pages successfully extracted for all articles.")
 }
 
-func readArticlesFromFile(filePath string) ([]string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %v", err)
-	}
-	defer file.Close()
-
-	var articles []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		articles = append(articles, strings.TrimSpace(scanner.Text()))
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading file: %v", err)
-	}
-
-	return articles, nil
-}
-
 func extractPagesForArticles(pdfPath string, articles []string) error {
 	const patternThreshold = 0.4 // 80% threshold
-	const patternLimit = 100
 	// Get the total number of pages in the PDF
 	totalPages, err := getPDFPageCount(pdfPath)
 	if err != nil {

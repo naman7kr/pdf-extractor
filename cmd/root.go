@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
+var versionFlag bool
+var version = "unknown"
+
+// Root command definition
 var rootCmd = &cobra.Command{
 	Use:   "pdf-extractor",
 	Short: "A simple tool to extract information from PDF-like files",
@@ -13,6 +18,16 @@ var rootCmd = &cobra.Command{
 information from various document formats. Currently, it has a
 subcommand to 'get chapters' from a DOCX file (though the actual
 extraction is not yet implemented).`,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Handle the --version or -v flag
+		if versionFlag {
+			fmt.Println("PDF Extractor version:", version)
+			return
+		}
+
+		// Default behavior if no flags or subcommands are provided
+		fmt.Println("Please specify a subcommand or flag. Use --help for more information.")
+	},
 }
 
 type Article struct {
@@ -37,4 +52,5 @@ func Execute() {
 func init() {
 	// Here you can define global flags and other configurations
 	// that apply to all commands.
+	rootCmd.PersistentFlags().BoolVarP(&versionFlag, "version", "v", false, "Print the version number of pdf-extractor")
 }
