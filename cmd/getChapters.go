@@ -9,16 +9,12 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 )
 
 var file string
 
 var outputPath string
-
-type Article struct {
-	Title  string
-	Author string
-}
 
 var getCmd = &cobra.Command{
 	Use:   "get",
@@ -33,6 +29,29 @@ var chaptersCmd = &cobra.Command{
 	Run:     processChapters,
 }
 
+func saveArticlesAndAuthorsToYAML(articles []Article, filePath string) error {
+	// Create the YAML structure
+	config := ArticlesConfig{
+		Articles: articles,
+	}
+
+	// Create or overwrite the YAML file
+	file, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create YAML file: %v", err)
+	}
+	defer file.Close()
+
+	// Encode the structure into YAML and write to the file
+	encoder := yaml.NewEncoder(file)
+	err = encoder.Encode(config)
+	if err != nil {
+		return fmt.Errorf("failed to write YAML data: %v", err)
+	}
+
+	fmt.Printf("Saved articles and authors to YAML file: %s\n", filePath)
+	return nil
+}
 func init() {
 	// Add 'get' as a subcommand of the root command
 	rootCmd.AddCommand(getCmd)
@@ -75,23 +94,15 @@ func processChapters(cmd *cobra.Command, args []string) {
 	// Debug: Print the articles array
 	fmt.Printf("Extracted Articles: %+v\n", articles)
 
-	// Save the article titles to articles.txt
-	articlesFilePath := filepath.Join(outputPath, "articles.txt")
-	err = saveArticleTitles(articles, articlesFilePath)
+	// Save articles and authors to config.yaml
+	yamlFilePath := filepath.Join(outputPath, "config.yaml")
+	err = saveArticlesAndAuthorsToYAML(articles, yamlFilePath)
 	if err != nil {
-		fmt.Printf("Error saving article titles: %v\n", err)
+		fmt.Printf("Error saving articles and authors to YAML: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Save authors to authors.txt
-	authorsFilePath := filepath.Join(outputPath, "authors.txt")
-	err = saveAuthors(articles, authorsFilePath)
-	if err != nil {
-		fmt.Printf("Error saving authors: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println("Titles and authors saved successfully.")
+	fmt.Println("Articles and authors saved successfully to config.yaml.")
 }
 
 func extractContentsPageInMemory(pdfPath string) (string, error) {

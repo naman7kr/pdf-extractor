@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,12 +11,14 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 )
 
 var extractFile string
 var configPath string
 var endsWith string
 var chapterOutputPath string
+
 var extractCmd = &cobra.Command{
 	Use:   "extract",
 	Short: "Extract pages related to articles from the PDF",
@@ -37,7 +40,28 @@ func init() {
 
 	rootCmd.AddCommand(extractCmd)
 }
+func readArticlesFromConfig(filePath string) ([]string, error) {
+	// Read the YAML file
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config.yaml: %v", err)
+	}
 
+	// Parse the YAML file
+	var config ArticlesConfig
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse config.yaml: %v", err)
+	}
+
+	// Extract article titles
+	var titles []string
+	for _, article := range config.Articles {
+		titles = append(titles, article.Title)
+	}
+
+	return titles, nil
+}
 func processExtract(cmd *cobra.Command, args []string) {
 	if extractFile == "" {
 		fmt.Println("Error: Please specify a file using the --file flag.")
@@ -51,17 +75,17 @@ func processExtract(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Construct the full path to the articles.txt file
-	articlesFilePath := filepath.Join(configPath, "articles.txt")
+	// Construct the full path to the config.yaml file
+	configFilePath := filepath.Join(configPath, "config.yaml")
 
-	// Check if the articles file exists
-	if _, err := os.Stat(articlesFilePath); os.IsNotExist(err) {
-		fmt.Printf("Error: %s not found. Please provide a valid directory containing articles.txt.\n", articlesFilePath)
+	// Check if the config.yaml file exists
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+		fmt.Printf("Error: %s not found. Please provide a valid directory containing config.yaml.\n", configFilePath)
 		os.Exit(1)
 	}
 
-	// Read articles from the articles.txt file
-	articles, err := readArticlesFromFile(articlesFilePath)
+	// Read articles from the config.yaml file
+	articles, err := readArticlesFromConfig(configFilePath)
 	if err != nil {
 		fmt.Printf("Error reading articles: %v\n", err)
 		os.Exit(1)
