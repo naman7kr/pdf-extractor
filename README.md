@@ -10,19 +10,21 @@ PDF Extractor is a CLI tool developed using Go and Cobra. It provides an easy wa
    - [Build from Source](#build-from-source)
    - [Prerequisites](#prerequisites)
 3. [Usage](#usage)
-   - [Extract Chapters and Authors](#extract-chapters-and-authors)
+   - [Extract Index](#extract-index)
    - [Generate PDFs for Chapters or Articles](#generate-pdfs-for-chapters-or-articles)
    - [Delete Pages from a PDF](#delete-pages-from-a-pdf)
+   - [Delete PDF file](#delete-pdf)
    - [Undo Delete Operation](#undo-delete-operation)
 4. [Contributing](#contributing)
 5. [Contact](#contact)
 
 ## Features
 
-- **Extract Chapters or Articles**: Extract chapters or articles from a PDF.
+- **Extract Index**: Extract authors and titles from a PDF file to config.yaml.
 - **Create Chapters PDF**: Create separate PDF files for each chapter. 
 - **Delete Pages**: Remove specific pages or a range of pages from a PDF.
-- **Undo Delete Operation**: Restore deleted pages using the undo functionality.
+- **Delete PDF File**: Delete an entire PDF file with optional backup
+- **Undo Delete Operation**:  Restore deleted pages or files using the undo functionality.
 
 ## Installation
 
@@ -67,19 +69,17 @@ After completing these steps, both `poppler-utils` and `pdftk` should be availab
 
 ## Usage
 
-### Extract Chapters and Authors
-The following command extracts all the articles or chapters and their respective authors from the content page of the specified PDF file:
+### Extract Index
+The following command generates separate PDF files for all the chapters or articles in the specified PDF file:
 
 ```bash
-pdf-extractor get chapters --file="<pdf-file>" --output-path="<output-directory>"
+pdf-extractor extract-index --file=$pdfFile --output-path=$outputPath
 ```
-- ***Description***: This command scans the content page of the PDF to identify all the chapters or articles and their authors. The extracted information is saved in two separate files:
-
-    - `articles.txt`: Contains the list of articles or chapters.
-    - `authors.txt`: Contains the list of authors.
+- ***Description***: This command scans the content page of the PDF to identify all the chapters or articles and their authors. The extracted information is saved to `config.yaml`
 
 - ***Options***:
-  - `--output-path`: Specify the directory where the output files (`articles.txt` and `authors.txt`) will be saved. Defaults to `./`.
+  - `--output-path`: Specify the directory where the output files (`config.yaml`) will be saved. Defaults to `./`.
+  - `--file`(***Required***): Specify the file path which will be used for the extraction process
 
 - ***Note:*** Currently, this command only scans the page where the content is located. If the content page spans more than one page, it will not scan the additional pages.
 
@@ -87,17 +87,24 @@ pdf-extractor get chapters --file="<pdf-file>" --output-path="<output-directory>
 The following command generates separate PDF files for all the chapters or articles in the specified PDF file:
 
 ```bash
-pdf-extractor extract --file="<pdf-file>" --output-path="<output-directory>" --config-path="<config-directory>" --ends-with="<text>"
+pdf-extractor extract --file=$pdfFile --output-path="$outputPath" --config-path="$configPath"
 ```
 
-- ***Description:*** This command uses the `articles.txt` file, which contains the list of article titles present in the PDF. It scans through all the pages of the PDF, searches for the titles, and generates separate PDF files for each chapter or article.
+- ***Description:*** This command uses the `config.yaml` file present in `$configPath`. It scans through all the pages of the PDF `$pdfFile`, searches for the titles, and generates separate PDF files for each chapter or article.
 
 - ***Options***:
+  - `--file` (***Required***): Specify the 
   - `--output-path`: Specify the directory where the generated PDFs will be saved. Defaults to `./extracted`.
   - `--config-path`: Specify the directory containing the `articles.txt` file. Defaults to `./configs`. The file name must always be `articles.txt`.
   - `--ends-with`: Specify the text to find the page where the last article ends. If found, the last PDF will end before the page containing this text.
+  - `from`: Specify the page number to start the extraction process
+  - `to`: Specify the page number to end the extraction process
+  - `article-title`: Enter the title of the article 
 
-- ***Prerequisite***: Ensure that `articles.txt` is present in the specified directory before running this command.
+***Note: The from, to and article-title options are used to extract pdf using page range***
+```bash
+    ./outputs/linux/pdf-extractor extract --file=$pdfFile --output-path="$outputPath" --from=$from --to=$to --article-title="$articleTitle"
+```
 
 ### Delete Pages from a PDF
 The following command allows you to delete specific pages, a range of pages, or pages based on their content from a PDF file:
@@ -131,6 +138,7 @@ pdf-extractor delete-pages --file="<pdf-file>" [options]
 
 4. ***Backup Path***:
     - Use the `--backup-path` flag to specify the directory where backups will be stored. Defaults to `./backup`.
+    - Use `--no-backup` flag to skip the backup
 
 ***Constraints***
 - You cannot combine the following flags in a single command:
@@ -141,6 +149,16 @@ pdf-extractor delete-pages --file="<pdf-file>" [options]
 ***Notes:***
 - A backup of the original PDF is created before performing the delete operation.
 - Ensure that the specified flags are used correctly to avoid errors.
+
+### Delete PDF file
+The following command deletes an entire PDF file:
+```bash
+    pdf-extractor delete --file="<pdf-file>" [options]
+```
+- **Options**
+1. `--file`: Path to the PDF file (required)
+2. `--backup-path`: Specify the directory where backups will be stored. Defaults to `./backup`
+3. `--no-backup`: Skip creating a backup before deleting the file.
 
 ### Undo Delete Operation
 The following command restores the previous state of a PDF file by using the backup stored in the backup folder:
