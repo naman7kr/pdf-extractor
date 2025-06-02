@@ -14,10 +14,12 @@ import (
 )
 
 func ExtractPDF(extractFile string, outputPath string, configPath string, endsWith string) error {
-	err := utils.CreateDirectoryIfNotExists(outputPath)
+
+	err := utils.RecreateDirectory(outputPath)
 	if err != nil {
 		return err
 	}
+
 	configFilePath := filepath.Join(configPath, "config.yaml")
 	err = utils.CheckFileExists(configFilePath)
 	if err != nil {
@@ -139,18 +141,19 @@ func extractPagesForArticles(pdfPath string, articles []string, outputPath strin
 				endPage = totalPages
 			}
 		} else {
+			// logrus.Warnln("This is the last article")
 			// Handle the last article
 			endPage = totalPages
 			if endsWith != "" {
-				pageFound, err := findPageEndingWith(pdfPath, endsWith, startPage, totalPages)
+				pageFound, err := findPageEndingWith(pdfPath, endsWith, startPage, totalPages, pageContents)
 				if err != nil {
-					fmt.Printf("Error finding page for --ends-with: %v\n", err)
+					return fmt.Errorf("error finding page for --ends-with: %v", err)
 				} else if pageFound > 0 {
 					endPage = pageFound - 1
 				}
 			}
 		}
-
+		// logrus.Warnf("Endpage for article '%s' is %d", article, endPage)
 		// Validate page range
 		if startPage > endPage || startPage < 1 || endPage > totalPages {
 			return fmt.Errorf("invalid page range for article '%s' (start: %d, end: %d)", article, startPage, endPage)
@@ -283,33 +286,22 @@ func extractPDFPages(pdfPath, chapterOutputPath string, startPage, endPage int) 
 
 	return nil
 }
-func findPageEndingWith(pdfPath, endsWith string, startPage, totalPages int) (int, error) {
+func findPageEndingWith(pdfPath, endsWith string, startPage, totalPages int, pageContents []string) (int, error) {
 	for page := startPage; page <= totalPages; page++ {
-		tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("page_%d.txt", page))
-
-		// Extract the current page using pdftotext
-		err := utils.ExtractPDFPageWithPdftotext(pdfPath, tempFile, page)
-		if err != nil {
-			return 0, fmt.Errorf("failed to extract page %d: %v", page, err)
+		// Check if the pageContents slice has enough elements
+		if page-1 >= len(pageContents) {
+			return 0, fmt.Errorf("page %d exceeds the number of pages in the PDF", page)
 		}
 
-		// Read the extracted content from the temporary file
-		content, err := os.ReadFile(tempFile)
-		if err != nil {
-			return 0, fmt.Errorf("failed to read temporary file for page %d: %v", page, err)
-		}
+		// Get the normalized content for the current page
+		normalizedContent := utils.NormalizeText(pageContents[page-1])
+		logrus.Debugf("[DEBUG] Normalized content of page %d: '%s'", page, normalizedContent[:min(len(normalizedContent), 50)])
 
-		// Normalize the extracted content
-		normalizedContent := utils.NormalizeText(string(content))
-
-		// Check if the content starts with the specified text
+		// Check if the content ends with the specified text
 		if strings.HasPrefix(normalizedContent, utils.NormalizeText(endsWith)) {
+			logrus.Debugf("[DEBUG] Found 'ends-with' match on page %d: '%s'", page, normalizedContent[:min(len(normalizedContent), 50)])
 			return page, nil
 		}
-
-		// Remove the temporary file
-		os.Remove(tempFile)
 	}
-
 	return 0, nil
 }

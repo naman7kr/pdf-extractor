@@ -9,6 +9,22 @@ import (
 	"strings"
 )
 
+func RecreateDirectory(path string) error {
+	// Remove the directory if it exists
+	err := os.RemoveAll(path)
+	if err != nil {
+		return fmt.Errorf("failed to remove directory %s: %v", path, err)
+	}
+
+	// Create the directory again
+	err = os.MkdirAll(path, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to create directory %s: %v", path, err)
+	}
+
+	return nil
+}
+
 func CreateDirectoryIfNotExists(path string) error {
 	// Check if the directory exists
 	err := os.MkdirAll(path, os.ModePerm)
