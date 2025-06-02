@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func DeletePages(file string, fromPage int, toPage int, atPage int, startsWith string, backupPath string) error {
+func DeletePages(file string, fromPage int, toPage int, atPage int, startsWith string, backupPath string, backupFlag bool) error {
 	// Implement the logic to delete pages from the PDF file
 	// This function should handle the deletion of pages based on the provided parameters
 	// and create a backup of the original file if backupPath is specified.
@@ -23,9 +23,11 @@ func DeletePages(file string, fromPage int, toPage int, atPage int, startsWith s
 	if err != nil {
 		return err
 	}
-	err = utils.CreateBackup(file, backupPath)
-	if err != nil {
-		return err
+	if backupFlag {
+		err = utils.CreateBackup(file, backupPath)
+		if err != nil {
+			return err
+		}
 	}
 	// Proceed with the delete logic
 	if atPage > 0 {

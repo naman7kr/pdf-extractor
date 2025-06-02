@@ -2,7 +2,7 @@ package services
 
 import "pdf-extractor/internal/utils"
 
-func Delete(file string, backupPath string) error {
+func Delete(file string, backupPath string, backupFlag bool) error {
 	err := utils.CheckFileExists(file)
 	if err != nil {
 		return err
@@ -11,10 +11,12 @@ func Delete(file string, backupPath string) error {
 	if err != nil {
 		return err
 	}
-	err = utils.CreateBackup(file, backupPath)
-	// delete file "file" and move it to the backup path
-	if err != nil {
-		return err
+	if backupFlag {
+		// delete file "file" move it to the backup path
+		err = utils.CreateBackup(file, backupPath)
+		if err != nil {
+			return err
+		}
 	}
 	// delete the file file
 	err = utils.DeleteFile(file)

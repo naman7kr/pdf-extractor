@@ -13,9 +13,39 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func ExtractPDFFromRange(extractFile string, outputPath string, fromPage int, toPage int, articleTitle string) error {
+	// check if the extractFile exists
+	err := utils.CheckFileExists(extractFile)
+	if err != nil {
+		return err
+	}
+	// create outputPath if it does not exist
+	err = utils.CreateDirectoryIfNotExists(outputPath)
+	if err != nil {
+		return err
+	}
+	err = validateRange(extractFile, fromPage, toPage)
+	if err != nil {
+		return err
+	}
+	// Generate pdf file
+	outputFile := filepath.Join(outputPath, fmt.Sprintf("%s.pdf", utils.SanitizeFileName(articleTitle)))
+	err = extractPDFPages(extractFile, outputFile, fromPage, toPage)
+	if err != nil {
+		return fmt.Errorf("failed to extract pages from %s: %v", extractFile, err)
+	}
+	logrus.Infof("Extracted pages %d to %d from %s into %s", fromPage, toPage, extractFile, outputFile)
+	return nil
+}
+
 func ExtractPDF(extractFile string, outputPath string, configPath string, endsWith string) error {
 
 	err := utils.RecreateDirectory(outputPath)
+	if err != nil {
+		return err
+	}
+	// validate the extractFile
+	err = utils.CheckFileExists(extractFile)
 	if err != nil {
 		return err
 	}
@@ -41,6 +71,19 @@ func ExtractPDF(extractFile string, outputPath string, configPath string, endsWi
 
 	return nil
 }
+
+func validateRange(pdfPath string, fromPage int, toPage int) error {
+	// Get the total number of pages in the PDF
+	totalPages, err := utils.GetPDFPageCount(pdfPath)
+	if err != nil {
+		return fmt.Errorf("failed to get page count: %v", err)
+	}
+	if fromPage < 1 || toPage < 1 || fromPage > totalPages || toPage > totalPages {
+		return fmt.Errorf("invalid page range: fromPage (%d) and toPage (%d) must be between 1 and %d", fromPage, toPage, totalPages)
+	}
+	return nil
+}
+
 func readArticlesFromConfig(filePath string) ([]string, error) {
 	// Read the YAML file
 	data, err := os.ReadFile(filePath)

@@ -16,6 +16,7 @@ var DeleteCmd = &cobra.Command{
 func init() {
 	DeleteCmd.Flags().StringVarP(&file, "file", "f", "", "Path to the PDF file")
 	DeleteCmd.Flags().StringVar(&backupPath, "backup-path", "./backup", "Path to save backup files")
+	DeletePagesCommand.Flags().BoolVar(&skipBackup, "no-backup", false, "Create a backup of the PDF file before deleting pages")
 	DeleteCmd.MarkFlagRequired("file")
 	rootCmd.AddCommand(DeleteCmd)
 }
@@ -24,6 +25,7 @@ func deletePDF(cmd *cobra.Command, args []string) error {
 	cmds = append(cmds, &actions.DeleteSettings{
 		File:       file,
 		BackupPath: backupPath,
+		BackupFlag: !skipBackup,
 	})
 	invoker := actions.Invoker{
 		Command: cmds,

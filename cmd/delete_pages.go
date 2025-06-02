@@ -7,8 +7,6 @@ import (
 )
 
 var (
-	fromPage   int
-	toPage     int
 	atPage     int
 	startsWith string
 )
@@ -25,6 +23,7 @@ func init() {
 	DeletePagesCommand.Flags().IntVar(&toPage, "to", 0, "Ending page number to delete")
 	DeletePagesCommand.Flags().IntVar(&atPage, "at", 0, "Specific page number to delete")
 	DeletePagesCommand.Flags().StringVar(&startsWith, "starts-with", "", "Delete pages where content starts with the specified string")
+	DeletePagesCommand.Flags().BoolVar(&skipBackup, "no-backup", false, "Create a backup of the PDF file before deleting pages")
 	DeletePagesCommand.Flags().StringVar(&backupPath, "backup-path", "./backup", "Path to save backup files")
 	DeletePagesCommand.MarkFlagRequired("file")
 	rootCmd.AddCommand(DeletePagesCommand)
@@ -38,6 +37,7 @@ func deletePages(cmd *cobra.Command, args []string) error {
 		AtPage:     atPage,
 		StartsWith: startsWith,
 		BackupPath: backupPath,
+		BackupFlag: !skipBackup,
 	})
 	invoker := actions.Invoker{
 		Command: cmds,

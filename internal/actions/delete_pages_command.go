@@ -9,10 +9,11 @@ type DeletePagesSettings struct {
 	AtPage     int
 	StartsWith string
 	BackupPath string
+	BackupFlag bool
 }
 
 func (s *DeletePagesSettings) Execute() error {
-	return services.DeletePages(s.File, s.FromPage, s.ToPage, s.AtPage, s.StartsWith, s.BackupPath)
+	return services.DeletePages(s.File, s.FromPage, s.ToPage, s.AtPage, s.StartsWith, s.BackupPath, s.BackupFlag)
 }
 
 func (s *DeletePagesSettings) Description() string {
